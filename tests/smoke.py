@@ -24,7 +24,7 @@ with sync_playwright() as p:
     assert page.evaluate('localStorage.length') == 0
     before = page.locator('canvas').evaluate('(c) => c.toDataURL()')
     values = {'fullName': 'Alex Rivera', 'jobTitle': 'Community Engagement Manager',
-              'email': 'alex@ceoempowers.org', 'phone': '(518) 272-6012', 'extension': '242'}
+              'email': 'alex@ceoempowers.org', 'phone': '5182726012', 'extension': '242'}
     for key, value in values.items():
         page.locator('#' + key).fill(value)
     page.locator('#location').select_option('0')
@@ -37,10 +37,13 @@ with sync_playwright() as p:
         download = event.value
         download.save_as(output / download.suggested_filename)
     vcard = (output / 'alex-rivera.vcf').read_bytes()
-    for text in [b'BEGIN:VCARD\r\nVERSION:3.0', b'FN:Alex Rivera', b'TEL;TYPE=WORK,VOICE:5182726012 x242',
+    for text in [b'BEGIN:VCARD\r\nVERSION:3.0', b'FN:Alex Rivera', b'TEL;TYPE=WORK,VOICE:(518) 272-6012 x242',
                  b'ADR;TYPE=WORK:;;2331 Fifth Avenue;Troy;NY;12180;USA', b'END:VCARD\r\n']:
         assert text in vcard, text
     assert page.evaluate('makeVCard(details())') == vcard.decode()
+    assert page.evaluate('details().phone') == '(518) 272-6012'
+    assert page.evaluate("formatPhone('15182726012')") == '+1 (518) 272-6012'
+    assert page.evaluate("formatPhone('+44 20 7946 0958')") == '+44 20 7946 0958'
     for kind, size in [('card', (1500, 1000)), ('qr', (900, 900)), ('wallpaper', (1080, 1920))]:
         png = (output / f'alex-rivera-{kind}.png').read_bytes()
         assert png[:8] == b'\x89PNG\r\n\x1a\n'

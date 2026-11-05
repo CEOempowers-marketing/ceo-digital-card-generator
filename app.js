@@ -11,10 +11,17 @@ let currentQR = null;
 for (const [index, office] of LOCATIONS.entries()) {
   $('location').add(new Option(office.name, String(index)));
 }
+function formatPhone(value) {
+  const digits = value.replace(/\D/g, '');
+  const local = digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits;
+  if (local.length !== 10) return value;
+  const formatted = `(${local.slice(0,3)}) ${local.slice(3,6)}-${local.slice(6)}`;
+  return digits.length === 11 ? '+1 ' + formatted : formatted;
+}
 function details() {
   const value = id => $(id).value.trim();
   return {name:value('fullName'), title:value('jobTitle'), email:value('email'),
-    phone:value('phone'), extension:value('extension'),
+    phone:formatPhone(value('phone')), extension:value('extension'),
     office:LOCATIONS[$('location').value] || null};
 }
 function escapeVCard(value) {
@@ -32,7 +39,7 @@ function foldLine(line) {
 }
 function makeVCard(d) {
   const esc = escapeVCard;
-  const phone = d.phone.replace(/[^+0-9]/g, '');
+  const phone = escapeVCard(formatPhone(d.phone));
   const lines = ['BEGIN:VCARD','VERSION:3.0',`N:;${esc(d.name)};;;`, `FN:${esc(d.name)}`,
     'ORG:Commission on Economic Opportunity', `TITLE:${esc(d.title)}`,
     `EMAIL;TYPE=WORK,INTERNET:${esc(d.email)}`,`TEL;TYPE=WORK,VOICE:${phone}${d.extension ? ' x' + d.extension : ''}`,
