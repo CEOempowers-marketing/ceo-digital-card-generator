@@ -4,7 +4,7 @@ const form = $('card-form');
 const status = $('status');
 const buttons = [...document.querySelectorAll('[data-download]')];
 const logo = new Image();
-logo.src = 'assets/ceo-logo.png';
+logo.src = 'assets/ceo-logo.png?v=2f90030ce42f';
 let renderVersion = 0;
 let ready = false;
 let currentQR = null;
