@@ -5,15 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Create your branded CEO business card, contact QR code, and vCard.">
 <title>CEO Business Card Generator</title>
-<link rel="stylesheet" href="styles.css?v=33cdd43297b9">
+<link rel="stylesheet" href="styles.css?v=1ee678b3bb84">
 <script defer src="vendor/qrcode.min.js?v=55adcf885e8b"></script>
 <script defer src="locations.js?v=339dbde227d1"></script>
-<script defer src="app.js?v=21db013d0ffd"></script>
+<script defer src="app.js?v=6917ef0632d7"></script>
 </head>
 <body>
 <main>
 <div class="workspace">
-<section class="panel details"><h2>1. Add your work details</h2><p class="muted">Your card updates as you type. All fields are required except extension.</p>
+<section class="panel details"><h2>1. Add your work details</h2><p class="muted">Your card updates as you type. All fields are required except extension and profile photo.</p>
 <form id="card-form">
 <label for="fullName">Full name</label><input id="fullName" name="name" autocomplete="name" maxlength="80" placeholder="Your full name" required>
 <label for="jobTitle">Job title</label><input id="jobTitle" name="title" autocomplete="organization-title" maxlength="100" placeholder="Your job title" required>
@@ -21,6 +21,11 @@
 <div class="form-row"><div><label for="phone">Work phone</label><input id="phone" name="phone" type="tel" autocomplete="tel-national" maxlength="30" placeholder="(518) 272-6012" pattern="[+()0-9 .-]{7,30}" required></div><div><label for="extension">Extension <span>(optional)</span></label><input id="extension" name="extension" inputmode="numeric" maxlength="8" pattern="[0-9]{1,8}" placeholder="242"></div></div>
 <label for="location">Office location</label><select id="location" name="location" required><option value="">Select your location</option></select>
 <p id="office-address" class="office-address">Choose an office to include its address.</p>
+<label for="profilePhoto">Profile photo <span>(optional)</span></label>
+<input id="profilePhoto" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="photo-help photo-status">
+<p id="photo-help" class="muted">JPG, PNG, or WebP, up to 10 MB. Your photo is included in the downloaded contact file (.vcf) only. Recipients must open that file to save your photo; QR scans save your details without it. Photo support varies by contacts app.</p>
+<div class="photo-preview"><img id="profile-preview" hidden alt="Your selected contact photo"><button id="remove-photo" type="button" hidden>Remove photo</button></div>
+<p id="photo-status" class="muted" role="status" aria-live="polite"></p>
 </form>
 <div class="privacy"><strong>Your information stays in your browser.</strong><p>We don’t upload or save your entries. Only use work details you’re comfortable sharing.</p></div>
 </section>

@@ -8,6 +8,9 @@ logo.src = 'assets/ceo-logo.png?v=2f90030ce42f';
 let renderVersion = 0;
 let ready = false;
 let currentQR = null;
+let profilePhoto = null;
+let photoLoading = false;
+let photoVersion = 0;
 for (const [index, office] of LOCATIONS.entries()) {
   $('location').add(new Option(office.name, String(index)));
 }
@@ -37,7 +40,7 @@ function foldLine(line) {
   }
   return result;
 }
-function makeVCard(d) {
+function makeVCard(d, photo = null) {
   const esc = escapeVCard;
   const phone = escapeVCard(formatPhone(d.phone));
   const lines = ['BEGIN:VCARD','VERSION:3.0',`N:;${esc(d.name)};;;`, `FN:${esc(d.name)}`,
@@ -49,6 +52,7 @@ function makeVCard(d) {
     lines.push(`ADR;TYPE=WORK:;;${esc(match[1])};${esc(match[2])};NY;${match[3]};USA`);
     lines.push(`NOTE:${esc(d.office.name)}${d.extension ? '\\nPhone extension: ' + esc(d.extension) : ''}`);
   }
+  if (photo) lines.push(`PHOTO;ENCODING=b;TYPE=JPEG:${photo.split(',')[1]}`);
   lines.push('END:VCARD');
   return lines.map(foldLine).join('\r\n') + '\r\n';
 }
@@ -66,13 +70,6 @@ function lines(ctx, text, x, y, width, size, lineHeight, weight = 'normal') {
     line += word + ' ';
   }
   ctx.fillText(line.trim(),x,y); return y + lineHeight;
-}
-function qrQuietZone(qr) {
-  const pixels = qr.getContext('2d').getImageData(0,0,qr.width,qr.height).data;
-  for (let i = 0; i < pixels.length; i += 4) {
-    if (pixels[i] < 128 && pixels[i + 1] < 128 && pixels[i + 2] < 128) return (i / 4) % qr.width;
-  }
-  return 0;
 }
 function drawLogo(ctx, x, y, width, height) {
   if (!logo.naturalWidth) return;
@@ -114,9 +111,9 @@ function drawCard(canvas, d, qr, wallpaper = false) {
     fittedText(ctx,'ceoempowers.org',80,875,820,36,'bold','#ea1956');
     if (qr) ctx.drawImage(qr,930,410,420,420);
     else {ctx.fillStyle='#f6f1f8';ctx.fillRect(930,410,420,420);}
-    // Align the caption to the first QR module, inside its white quiet zone.
-    const captionX = qr ? 930 + qrQuietZone(qr) * 420 / qr.width : 930;
-    fittedText(ctx,qr ? 'SCAN TO SAVE CONTACT' : 'Complete your details for QR',captionX,875,420,23,'bold','#7b4198');
+    ctx.textAlign = 'center';
+    fittedText(ctx,qr ? 'SCAN TO SAVE CONTACT' : 'Complete your details for QR',1140,875,420,23,'bold','#7b4198');
+    ctx.textAlign = 'left';
     fittedText(ctx,'Changing lives. Improving our community.',80,795,810,29,'bold','#7b4198');
   }
 }
@@ -136,7 +133,7 @@ async function refresh() {
     if (!logo.complete || !logo.naturalWidth) throw new Error('Brand image unavailable');
     currentQR = qr; ready = true;
     drawCard($('card-preview'),d,qr);
-    buttons.forEach(b => b.disabled = false);
+    buttons.forEach(b => b.disabled = b.dataset.download === 'vcf' && photoLoading);
     status.textContent = 'Ready to download. Double-check your details before sharing.';
   } catch (error) {
     if (version === renderVersion) status.textContent = 'We couldn’t create your card. Reload the page and try again, or shorten your details.';
@@ -149,11 +146,11 @@ function saveBlob(blob, name) {
   setTimeout(() => URL.revokeObjectURL(url),60000);
 }
 async function download(kind) {
-  if (!form.reportValidity() || !ready || !currentQR) return;
+  if (!form.reportValidity() || !ready || !currentQR || (kind === 'vcf' && photoLoading)) return;
   const d = details();
   const filename = d.name.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'ceo-contact';
   try {
-    if (kind === 'vcf') saveBlob(new Blob([makeVCard(d)],{type:'text/vcard;charset=utf-8'}),filename+'.vcf');
+    if (kind === 'vcf') saveBlob(new Blob([makeVCard(d,profilePhoto)],{type:'text/vcard;charset=utf-8'}),filename+'.vcf');
     else {
       const canvas = document.createElement('canvas');
       if (kind === 'qr') {canvas.width=900;canvas.height=900;canvas.getContext('2d').drawImage(currentQR,0,0);}
@@ -167,7 +164,53 @@ async function download(kind) {
 }
 form.addEventListener('submit',event=>event.preventDefault());
 form.addEventListener('input',refresh);
-form.addEventListener('change',refresh);
+form.addEventListener('change',event => {
+  if (event.target.id === 'profilePhoto') loadPhoto();
+  else refresh();
+});
+function clearPhoto() {
+  ++photoVersion; profilePhoto = null; photoLoading = false;
+  $('profilePhoto').value = '';
+  $('profile-preview').removeAttribute('src'); $('profile-preview').hidden = true;
+  $('remove-photo').hidden = true; $('photo-status').textContent = '';
+  refresh();
+}
+async function loadPhoto() {
+  const version = ++photoVersion;
+  const file = $('profilePhoto').files[0];
+  profilePhoto = null; photoLoading = Boolean(file);
+  $('profile-preview').hidden = true; $('profile-preview').removeAttribute('src');
+  $('remove-photo').hidden = !file;
+  $('photo-status').textContent = file ? 'Preparing your photo…' : '';
+  refresh();
+  if (!file) return;
+  let url;
+  try {
+    if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) {
+      throw new Error('Choose a JPG, PNG, or WebP photo smaller than 10 MB.');
+    }
+    url = URL.createObjectURL(file);
+    const image = new Image(); image.src = url; await image.decode();
+    if (version !== photoVersion) return;
+    const scale = Math.min(1,400 / Math.max(image.naturalWidth,image.naturalHeight));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1,Math.round(image.naturalWidth * scale));
+    canvas.height = Math.max(1,Math.round(image.naturalHeight * scale));
+    const ctx = canvas.getContext('2d'); ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0,0,canvas.width,canvas.height); ctx.drawImage(image,0,0,canvas.width,canvas.height);
+    profilePhoto = canvas.toDataURL('image/jpeg',0.85);
+    $('profile-preview').src = profilePhoto; $('profile-preview').hidden = false;
+    $('photo-status').textContent = 'Photo added to your contact file. It is not included in the QR code or card images.';
+  } catch(error) {
+    if (version !== photoVersion) return;
+    $('profilePhoto').value = '';
+    $('photo-status').textContent = error.message.startsWith('Choose a') ? error.message : 'This photo could not be opened. Try a JPG or PNG file.';
+  } finally {
+    if (url) URL.revokeObjectURL(url);
+    if (version === photoVersion) {photoLoading = false; refresh();}
+  }
+}
+$('remove-photo').addEventListener('click',clearPhoto);
 buttons.forEach(button=>button.addEventListener('click',()=>download(button.dataset.download)));
 logo.addEventListener('load',refresh);
 logo.addEventListener('error',()=>{status.textContent='The company graphic could not load. Please reload the page.';buttons.forEach(b=>b.disabled=true);});

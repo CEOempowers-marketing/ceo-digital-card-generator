@@ -1,6 +1,9 @@
 """Run against a local static server: python3 tests/smoke.py [base URL].
 Requires Playwright for Python and Chromium; no changes to application dependencies.
 """
+import base64
+import io
+from PIL import Image
 import json
 import os
 from pathlib import Path
@@ -16,7 +19,7 @@ with sync_playwright() as p:
     page = browser.new_page(accept_downloads=True)
     errors, external = [], []
     page.on('pageerror', lambda error: errors.append(str(error)))
-    page.on('request', lambda request: external.append(request.url) if not request.url.startswith(base) else None)
+    page.on('request', lambda request: external.append(request.url) if not request.url.startswith((base, 'blob:', 'data:')) else None)
     page.goto(base, wait_until='networkidle')
     assert page.title() == 'CEO Business Card Generator'
     assert page.locator('button:disabled').count() == 4
@@ -48,6 +51,32 @@ with sync_playwright() as p:
         png = (output / f'alex-rivera-{kind}.png').read_bytes()
         assert png[:8] == b'\x89PNG\r\n\x1a\n'
         assert struct.unpack('>II', png[16:24]) == size
+    # A profile photo is embedded in the .vcf only; the QR data and card stay unchanged.
+    qr_before = page.evaluate('currentQR.toDataURL()')
+    card_before = page.locator('canvas').evaluate('(c) => c.toDataURL()')
+    page.locator('#profilePhoto').set_input_files(str(Path(__file__).resolve().parents[1] / 'assets/ceo-logo.png'))
+    page.wait_for_function("document.getElementById('photo-status').textContent.startsWith('Photo added')")
+    page.wait_for_function('document.querySelectorAll("[data-download]:disabled").length === 0')
+    assert page.locator('#profile-preview').is_visible()
+    assert page.evaluate('currentQR.toDataURL()') == qr_before
+    assert page.locator('canvas').evaluate('(c) => c.toDataURL()') == card_before
+    with page.expect_download() as event:
+        page.locator('[data-download="vcf"]').click()
+    event.value.save_as(output / 'with-photo.vcf')
+    photo_vcard = (output / 'with-photo.vcf').read_bytes().decode()
+    unfolded = photo_vcard.replace('\r\n ', '')
+    photo_line = next(line for line in unfolded.split('\r\n') if line.startswith('PHOTO;'))
+    photo_bytes = base64.b64decode(photo_line.split(':', 1)[1], validate=True)
+    with Image.open(io.BytesIO(photo_bytes)) as photo:
+        assert photo.format == 'JPEG' and max(photo.size) <= 400
+    assert all(len(line.encode()) <= 75 for line in photo_vcard.split('\r\n'))
+    page.locator('#remove-photo').click()
+    assert page.locator('#profile-preview').is_hidden()
+    assert 'PHOTO;' not in page.evaluate('makeVCard(details(), profilePhoto)')
+    page.locator('#profilePhoto').set_input_files({'name': 'bad.txt', 'mimeType': 'text/plain', 'buffer': b'not a picture'})
+    page.wait_for_function("document.getElementById('photo-status').textContent.startsWith('Choose a')")
+    assert page.evaluate('profilePhoto === null')
+    page.wait_for_function('document.querySelectorAll("[data-download]:disabled").length === 0')
     # Every office must produce its official address, including the longest office name.
     for i in range(7):
         page.locator('#location').select_option(str(i))
@@ -64,7 +93,7 @@ with sync_playwright() as p:
     assert all(len(line.encode()) <= 75 for line in folded.split('\r\n'))
     assert len(folded.replace('\r\n ', '').split('TITLE:')[1].split('\r\n')[0]) == 100
     page.locator('#fullName').fill('<img src=x onerror=alert(1)>')
-    assert page.locator('img').count() == 0
+    assert page.locator('#preview-summary img').count() == 0
     # Responsive layout and preview, including a long office/title.
     page.set_viewport_size({'width': 390, 'height': 844})
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
@@ -79,4 +108,4 @@ with sync_playwright() as p:
     browser.close()
 print(json.dumps({'result': 'passed', 'checks': ['all seven locations', 'preview', 'four downloads',
     'required-field validation', 'vCard escaping and UTF-8 folding', 'mobile layout', 'no external requests',
-    'no saved personal data', 'no browser errors'], 'artifacts': str(output)}))
+    'no saved personal data', 'no browser errors', 'profile photo embedding/removal and invalid files', 'photo excluded from QR and card'], 'artifacts': str(output)}))
