@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Digital Business Card Generator</title>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.2.2/build/qrcode.min.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -370,7 +370,7 @@ function generateCardHTML() {
 <div class="company">${val('company')}</div>
 <div class="divider"></div>
 ${val('email') ? `<a href="mailto:${val('email')}" class="contact-row"><div class="contact-icon">✉️</div><div><div class="contact-label">Email</div><div class="contact-value">${val('email')}</div></div></a>` : ''}
-${val('website') ? `<a href="${val('website')}" class="contact-row" target="_blank"><div class="contact-icon">🌐</div><div><div class="contact-label">Website</div><div class="contact-value">${val('website').replace(/^https?:\\/\\/(www\\.)?/,'')}</div></div></a>` : ''}
+${val('website') ? `<a href="${val('website')}" class="contact-row" target="_blank"><div class="contact-icon">🌐</div><div><div class="contact-label">Website</div><div class="contact-value">${val('website').replace(/^https?:\/\/(www\.)?/,'')}</div></div></a>` : ''}
 ${val('linkedin') ? `<a href="${val('linkedin')}" class="contact-row" target="_blank"><div class="contact-icon">💼</div><div><div class="contact-label">LinkedIn</div><div class="contact-value">LinkedIn Profile</div></div></a>` : ''}
 <div class="actions">
 <a href="mailto:${val('email')}?subject=Great%20meeting%20you!" class="btn btn-primary">Send Email</a>
