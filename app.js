@@ -58,14 +58,21 @@ function fittedText(ctx, text, x, y, maxWidth, size, weight = 'normal', color = 
   while (ctx.measureText(text).width > maxWidth && size > 10);
   ctx.fillText(text, x, y);
 }
-function lines(ctx, text, x, y, width, size, lineHeight) {
-  ctx.fillStyle = '#65616a'; ctx.font = `${size}px Arial, Helvetica, sans-serif`;
+function lines(ctx, text, x, y, width, size, lineHeight, weight = 'normal') {
+  ctx.fillStyle = '#65616a'; ctx.font = `${weight} ${size}px Arial, Helvetica, sans-serif`;
   let line = '';
   for (const word of text.split(' ')) {
     if (ctx.measureText(line + word).width > width && line) { ctx.fillText(line.trim(),x,y); y += lineHeight; line = ''; }
     line += word + ' ';
   }
   ctx.fillText(line.trim(),x,y); return y + lineHeight;
+}
+function qrQuietZone(qr) {
+  const pixels = qr.getContext('2d').getImageData(0,0,qr.width,qr.height).data;
+  for (let i = 0; i < pixels.length; i += 4) {
+    if (pixels[i] < 128 && pixels[i + 1] < 128 && pixels[i + 2] < 128) return (i / 4) % qr.width;
+  }
+  return 0;
 }
 function drawLogo(ctx, x, y, width, height) {
   if (!logo.naturalWidth) return;
@@ -93,23 +100,24 @@ function drawCard(canvas, d, qr, wallpaper = false) {
     fittedText(ctx,'Changing lives.',540,1805,930,31,'bold','#7b4198');
     fittedText(ctx,'Improving our community.',540,1850,930,31,'bold','#7b4198');
   } else {
-    drawLogo(ctx,70,95,310,190);
+    drawLogo(ctx,100,55,260,260);
     fittedText(ctx,d.name || 'Your Name',440,145,990,66,'bold');
-    fittedText(ctx,d.title || 'Your Job Title',440,220,990,40);
-    fittedText(ctx,'Commission on Economic Opportunity',440,285,990,29,'normal','#7b4198');
+    fittedText(ctx,d.title || 'Your Job Title',440,205,990,40);
+    fittedText(ctx,'Commission on Economic Opportunity',440,265,990,29,'normal','#7b4198');
     ctx.strokeStyle = '#e6dfeb'; ctx.beginPath();ctx.moveTo(70,360);ctx.lineTo(1430,360);ctx.stroke();
     fittedText(ctx,d.phone + (d.extension ? ' ext. '+d.extension : '') || 'Your work phone',80,455,840,38);
     fittedText(ctx,d.email || 'Your work email',80,520,840,36);
     if (d.office) {
-      const y = lines(ctx,d.office.name,80,635,810,34,45);
+      const y = lines(ctx,d.office.name,80,635,810,34,45,'bold');
       lines(ctx,d.office.address,80,y+20,810,30,42);
     } else fittedText(ctx,'Choose your office location',80,635,810,32,'normal','#777777');
     fittedText(ctx,'ceoempowers.org',80,875,820,36,'bold','#ea1956');
-    if (qr) ctx.drawImage(qr,1010,410,420,420);
-    else {ctx.fillStyle='#f6f1f8';ctx.fillRect(1010,410,420,420);}
-    fittedText(ctx,qr ? 'SCAN TO SAVE CONTACT' : 'Complete your details for QR',1010,875,420,23,'bold','#7b4198');
-    ctx.fillStyle = '#f6f1f8'; ctx.fillRect(0,920,1500,64);
-    fittedText(ctx,'Changing lives. Improving our community.',80,962,1350,29,'bold','#7b4198');
+    if (qr) ctx.drawImage(qr,930,410,420,420);
+    else {ctx.fillStyle='#f6f1f8';ctx.fillRect(930,410,420,420);}
+    // Align the caption to the first QR module, inside its white quiet zone.
+    const captionX = qr ? 930 + qrQuietZone(qr) * 420 / qr.width : 930;
+    fittedText(ctx,qr ? 'SCAN TO SAVE CONTACT' : 'Complete your details for QR',captionX,875,420,23,'bold','#7b4198');
+    fittedText(ctx,'Changing lives. Improving our community.',80,795,810,29,'bold','#7b4198');
   }
 }
 async function refresh() {
