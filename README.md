@@ -1,81 +1,49 @@
-# 📱 Digital Business Card Generator
+# CEO Business Card Generator
 
-> Turn your phone lock screen into a networking machine — in 60 seconds.
+A company-branded, self-service generator for Commission on Economic Opportunity employees. Hosted as a static site on GitHub Pages and linked from the intranet. No employee accounts, backend, database, or build step.
 
-A free, open-source tool that generates a complete digital business card system: lock screen wallpaper with QR code, branded contact card page, vCard file, and everything packaged as a downloadable zip.
+## Employee workflow
 
-**No sign-up. No account. No tracking. Just your info → your card.**
+1. Enter your name, job title, work email, phone, and optional extension.
+2. Select one of the seven official offices. Names and addresses match the CEO email signature generator.
+3. Review the preview and download a business card PNG, contact QR PNG, vCard (.vcf), or phone wallpaper.
 
-## 🔗 Try It
+The QR code encodes the **vCard contact details directly**, not a webpage URL. Recipients can scan it to add a contact, or open the shared .vcf file. Camera/contact support varies by phone; share the .vcf as a fallback. Extensions are included in the contact number and note; how they are imported or dialed depends on the contacts app. No employee contact pages are created.
 
-👉 **[Generate Your Card](https://sarahevansai.github.io/digital-business-card/)**
+Entries are processed in the browser and are not sent to a server or saved in browser storage. Reloading clears the form. The downloadable files contain the entered work information; share them deliberately. Updated information requires new downloads; already shared files do not update automatically.
 
-## How It Works
+## Run locally
 
-```
-Fill in your info → Preview live → Download everything
-```
-
-1. **Enter your details** — name, title, company, email, links
-2. **Pick an accent color** — purple, teal, pink, orange, green, or white
-3. **Preview in real-time** — see your lock screen update as you type
-4. **Download** — lock screen image, contact card page, vCard, or everything as a zip
-
-### What You Get
-
-| File | What It Does |
-|------|-------------|
-| `lockscreen.png` | Phone wallpaper with your name + QR code |
-| `card.html` | Contact card page — deploy anywhere |
-| `.vcf` | vCard file — "Save Contact" in one tap |
-| `README.md` | Setup instructions |
-
-## 📱 The Flow
-
-```
-Someone sees your lock screen
-    → Scans the QR code
-        → Lands on your contact card
-            → Saves your info or emails you
+```sh
+cd /workspace/ceo-digital-card-generator
+python3 -m http.server 8000 --bind 127.0.0.1
 ```
 
-## 🛠️ Self-Host / Customize
+Open the local server in a browser. No Node dependency installation is required for the site. `package.json` and its lockfile are retained from the previous generator; the website does not use its native Node dependencies. Its `npm test` script is an old placeholder, not the functional test runner.
 
-```bash
-git clone https://github.com/sarahevansai/digital-business-card.git
-cd digital-business-card
-# Open index.html in a browser — that's it
+## Validation
+
+With the server running, and Python Playwright plus Chromium installed:
+
+```sh
+python3 tests/smoke.py
 ```
 
-No dependencies. No build step. No framework. Just HTML + vanilla JS.
+This exercises all seven offices, four actual downloads, vCard contents/escaping/UTF-8 folding, required fields, live preview, mobile layout, browser errors, external requests, and absence of saved personal data. It prints the temporary artifact directory. A separate independent QR-decoder check was also used during development to compare exported QR payloads with the vCard. Before organization-wide release, scan a downloaded card with the phones your employees use to confirm their contact-import behavior.
 
-### Deploy Your Contact Card
+## GitHub Pages
 
-The generated `card.html` works on any static host:
+In repository **Settings → Pages**, choose **Deploy from a branch**, **main**, **/ (root)**, and Save. No GitHub Actions build or secrets are needed. Once deployed, the intranet can link to:
 
-```bash
-# Vercel
-vercel --prod
+https://ceoempowers-marketing.github.io/ceo-digital-card-generator/
 
-# Netlify
-netlify deploy --prod
+The generator page is public. Employee entries do not become public web pages or get committed to this repository.
 
-# GitHub Pages
-# Just push card.html to a repo with Pages enabled
-```
+## Brand and office maintenance
 
-## Tech
+- `locations.js`: the seven official location names and addresses.
+- `assets/ceo-brand.png`: official branded graphic reused from the company's [email signature generator](https://github.com/CEOempowers-marketing/CEO-email-signature), `Email signature-7.png`.
+- `styles.css` and `app.js`: fixed purple `#7B4198`, pink `#EA1956`, and gray `#35363A` brand treatment and export layouts.
+- `vendor/qrcode.min.js`: locally hosted QRCode browser bundle, version 1.2.2, MIT licensed (see `vendor/qrcode-LICENSE.txt`). Local hosting removes the previous broken CDN dependency and avoids third-party script requests during form use.
 
-- **Vanilla JS** — zero dependencies for the generator
-- **Canvas API** — real-time lock screen preview + image export
-- **QRCode.js** — QR generation with high error correction
-- **JSZip** — client-side zip packaging
-- All processing happens **in your browser** — nothing is sent to any server
-
-## License
-
-MIT — do whatever you want with it.
-
----
-
-Built by [Sarah Evans](https://asksarah.ai) — AI Visibility Architect, Partner & Head of PR at [Zen Media](https://zenmedia.com)
+The old generic generator, custom color picker, contact-page HTML export, and ZIP workflow have been replaced. Git history retains the previous version.
