@@ -4,7 +4,7 @@ const form = $('card-form');
 const status = $('status');
 const buttons = [...document.querySelectorAll('[data-download]')];
 const logo = new Image();
-logo.src = 'assets/ceo-brand.png';
+logo.src = 'assets/ceo-logo.png';
 let renderVersion = 0;
 let ready = false;
 let currentQR = null;
@@ -67,6 +67,12 @@ function lines(ctx, text, x, y, width, size, lineHeight) {
   }
   ctx.fillText(line.trim(),x,y); return y + lineHeight;
 }
+function drawLogo(ctx, x, y, width, height) {
+  if (!logo.naturalWidth) return;
+  const scale = Math.min(width / logo.naturalWidth, height / logo.naturalHeight);
+  const w = logo.naturalWidth * scale, h = logo.naturalHeight * scale;
+  ctx.drawImage(logo, x + (width - w) / 2, y + (height - h) / 2, w, h);
+}
 function drawCard(canvas, d, qr, wallpaper = false) {
   canvas.width = wallpaper ? 1080 : 1500; canvas.height = wallpaper ? 1920 : 1000;
   const ctx = canvas.getContext('2d');
@@ -74,7 +80,7 @@ function drawCard(canvas, d, qr, wallpaper = false) {
   ctx.fillStyle = '#7b4198'; ctx.fillRect(0,0,canvas.width,16);
   ctx.fillStyle = '#ea1956'; ctx.fillRect(0,canvas.height-16,canvas.width,16);
   if (wallpaper) {
-    if (logo.naturalWidth) ctx.drawImage(logo,440,190,200,267);
+    drawLogo(ctx,315,250,450,220);
     ctx.textAlign = 'center';
     fittedText(ctx,d.name || 'Your Name',540,565,930,70,'bold');
     fittedText(ctx,d.title || 'Your Job Title',540,635,930,42);
@@ -84,11 +90,13 @@ function drawCard(canvas, d, qr, wallpaper = false) {
     if (qr) ctx.drawImage(qr,240,950,600,600);
     fittedText(ctx,qr ? 'SCAN TO SAVE MY CONTACT' : 'Complete your details to add a QR code',540,1630,930,28,'bold','#7b4198');
     fittedText(ctx,'ceoempowers.org',540,1710,930,35,'bold','#ea1956');
+    fittedText(ctx,'Changing lives.',540,1805,930,31,'bold','#7b4198');
+    fittedText(ctx,'Improving our community.',540,1850,930,31,'bold','#7b4198');
   } else {
-    if (logo.naturalWidth) ctx.drawImage(logo,70,70,180,240);
-    fittedText(ctx,d.name || 'Your Name',310,145,1110,66,'bold');
-    fittedText(ctx,d.title || 'Your Job Title',310,220,1110,40);
-    fittedText(ctx,'Commission on Economic Opportunity',310,285,1110,29,'normal','#7b4198');
+    drawLogo(ctx,70,95,310,190);
+    fittedText(ctx,d.name || 'Your Name',440,145,990,66,'bold');
+    fittedText(ctx,d.title || 'Your Job Title',440,220,990,40);
+    fittedText(ctx,'Commission on Economic Opportunity',440,285,990,29,'normal','#7b4198');
     ctx.strokeStyle = '#e6dfeb'; ctx.beginPath();ctx.moveTo(70,360);ctx.lineTo(1430,360);ctx.stroke();
     fittedText(ctx,d.phone + (d.extension ? ' ext. '+d.extension : '') || 'Your work phone',80,455,840,38);
     fittedText(ctx,d.email || 'Your work email',80,520,840,36);
@@ -100,6 +108,8 @@ function drawCard(canvas, d, qr, wallpaper = false) {
     if (qr) ctx.drawImage(qr,1010,410,420,420);
     else {ctx.fillStyle='#f6f1f8';ctx.fillRect(1010,410,420,420);}
     fittedText(ctx,qr ? 'SCAN TO SAVE CONTACT' : 'Complete your details for QR',1010,875,420,23,'bold','#7b4198');
+    ctx.fillStyle = '#f6f1f8'; ctx.fillRect(0,920,1500,64);
+    fittedText(ctx,'Changing lives. Improving our community.',80,962,1350,29,'bold','#7b4198');
   }
 }
 async function refresh() {

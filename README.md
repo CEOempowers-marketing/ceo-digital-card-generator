@@ -42,7 +42,7 @@ The generator page is public. Employee entries do not become public web pages or
 ## Brand and office maintenance
 
 - `locations.js`: the seven official location names and addresses.
-- `assets/ceo-brand.png`: official branded graphic reused from the company's [email signature generator](https://github.com/CEOempowers-marketing/CEO-email-signature), `Email signature-7.png`.
+- `assets/ceo-logo.png`: standalone logo prepared from the supplied company logo. The tagline is drawn separately in the card footer and near the bottom of the phone wallpaper.
 - `styles.css` and `app.js`: fixed purple `#7B4198`, pink `#EA1956`, and gray `#35363A` brand treatment and export layouts.
 - `vendor/qrcode.min.js`: locally hosted QRCode browser bundle, version 1.2.2, MIT licensed (see `vendor/qrcode-LICENSE.txt`). Local hosting removes the previous broken CDN dependency and avoids third-party script requests during form use.
 
